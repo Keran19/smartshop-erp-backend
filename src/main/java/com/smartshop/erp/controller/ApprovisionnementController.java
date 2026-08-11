@@ -2,8 +2,11 @@ package com.smartshop.erp.controller;
 
 import com.smartshop.erp.dto.request.ApprovisionnementRequest;
 import com.smartshop.erp.dto.response.ApprovisionnementResponse;
+import com.smartshop.erp.dto.response.LotActuelResponse;
+import com.smartshop.erp.dto.response.LotStockResponse;
 import com.smartshop.erp.security.CustomUserDetails;
 import com.smartshop.erp.service.ApprovisionnementService;
+import com.smartshop.erp.service.CoutMarchandiseService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -21,6 +24,7 @@ import java.util.List;
 public class ApprovisionnementController {
 
     private final ApprovisionnementService approvisionnementService;
+    private final CoutMarchandiseService coutMarchandiseService;
 
     @GetMapping
     public ResponseEntity<List<ApprovisionnementResponse>> lister(@RequestParam(required = false) Long idBoutique) {
@@ -37,5 +41,23 @@ public class ApprovisionnementController {
         CustomUserDetails userDetails = (CustomUserDetails) authentication.getPrincipal();
         ApprovisionnementResponse reponse = approvisionnementService.creer(request, userDetails.getUtilisateur().getIdUtilisateur());
         return ResponseEntity.status(HttpStatus.CREATED).body(reponse);
+    }
+
+    /**
+     * Le lot en train d'etre ecoule pour ce produit dans cette boutique (methode FIFO), avec
+     * une alerte si le prix de vente actuel ne couvre plus ce cout d'achat. Ouvert aux vendeurs
+     * (pas seulement admin/gerant) car c'est eux qui ajustent le prix au point de vente.
+     */
+    @GetMapping("/lot-actuel")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<LotActuelResponse> lotActuel(@RequestParam Long idProduit, @RequestParam Long idBoutique) {
+        return ResponseEntity.ok(coutMarchandiseService.lotActuel(idProduit, idBoutique));
+    }
+
+    /** Historique complet des lots (epuises ou non) d'un produit dans une boutique. */
+    @GetMapping("/lots")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<List<LotStockResponse>> lots(@RequestParam Long idProduit, @RequestParam Long idBoutique) {
+        return ResponseEntity.ok(coutMarchandiseService.lots(idProduit, idBoutique));
     }
 }

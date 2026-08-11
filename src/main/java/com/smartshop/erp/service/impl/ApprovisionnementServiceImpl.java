@@ -85,8 +85,10 @@ public class ApprovisionnementServiceImpl implements ApprovisionnementService {
                     .sousTotal(sousTotal)
                     .build());
 
-            // Le cout d'achat courant du produit est mis a jour : les prochaines ventes
-            // calculeront leur benefice sur la base de ce nouveau prix de revient.
+            // Le cout d'achat "courant" du produit reste mis a jour pour compatibilite avec le
+            // reste de l'appli (rapports, marge par defaut), mais le suivi FIFO ci-dessous
+            // (historique_approvisionnement.quantite_restante) est desormais la source de verite
+            // pour savoir a quel prix est realmente vendu le stock au fil de son ecoulement.
             produit.setPrixAchat(ligneReq.getPrixAchat());
             produitRepository.save(produit);
         }
@@ -99,13 +101,15 @@ public class ApprovisionnementServiceImpl implements ApprovisionnementService {
         appro = approvisionnementRepository.save(appro);
         entityManager.flush();
 
-        // Historique d'achat par produit/fournisseur (traçabilite, utilise pour l'historique produit)
+        // Historique d'achat par produit/fournisseur (traçabilite) + nouveau lot FIFO plein
+        // (quantite_restante = quantite recue : rien n'en a encore ete vendu).
         for (LigneApprovisionnement ligne : appro.getLignes()) {
             historiqueApprovisionnementRepository.save(HistoriqueApprovisionnement.builder()
                     .produit(ligne.getProduit())
                     .fournisseur(fournisseur)
                     .approvisionnement(appro)
                     .quantite(ligne.getQuantite())
+                    .quantiteRestante(ligne.getQuantite())
                     .prixAchat(ligne.getPrixAchat())
                     .build());
         }

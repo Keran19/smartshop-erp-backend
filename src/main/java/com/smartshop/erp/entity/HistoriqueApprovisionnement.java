@@ -35,6 +35,15 @@ public class HistoriqueApprovisionnement {
     @Column(nullable = false)
     private Integer quantite;
 
+    /**
+     * Quantite de ce lot pas encore ecoulee. Decrementee au fil des ventes (methode FIFO :
+     * on puise toujours dans le lot le plus ancien qui a encore du stock). Permet de savoir
+     * en permanence a quel prix d'achat correspond la marchandise en train d'etre vendue.
+     */
+    @Column(name = "quantite_restante", nullable = false)
+    @Builder.Default
+    private Integer quantiteRestante = 0;
+
     @Column(name = "prix_achat", nullable = false, precision = 12, scale = 2)
     private BigDecimal prixAchat;
 

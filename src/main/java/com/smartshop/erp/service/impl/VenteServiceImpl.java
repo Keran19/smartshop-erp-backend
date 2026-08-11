@@ -6,11 +6,13 @@ import com.smartshop.erp.dto.response.LigneVenteResponse;
 import com.smartshop.erp.dto.response.VenteResponse;
 import com.smartshop.erp.entity.*;
 import com.smartshop.erp.enums.ModeReglement;
+import com.smartshop.erp.enums.StatutSessionCaisse;
 import com.smartshop.erp.enums.StatutVente;
 import com.smartshop.erp.exception.OperationInvalideException;
 import com.smartshop.erp.exception.RessourceNonTrouveeException;
 import com.smartshop.erp.exception.StockInsuffisantException;
 import com.smartshop.erp.repository.*;
+import com.smartshop.erp.service.CoutMarchandiseService;
 import com.smartshop.erp.service.FacturePdfService;
 import com.smartshop.erp.service.RapportVentesPdfService;
 import com.smartshop.erp.service.VenteService;
@@ -39,6 +41,8 @@ public class VenteServiceImpl implements VenteService {
     private final UtilisateurRepository utilisateurRepository;
     private final FactureRepository factureRepository;
     private final CreditRepository creditRepository;
+    private final SessionCaisseRepository sessionCaisseRepository;
+    private final CoutMarchandiseService coutMarchandiseService;
     private final FacturePdfService facturePdfService;
     private final RapportVentesPdfService rapportVentesPdfService;
 
@@ -121,6 +125,11 @@ public class VenteServiceImpl implements VenteService {
     @Override
     @Transactional
     public VenteResponse valider(VenteRequest request, Long idVendeurConnecte) {
+        // La caisse du vendeur doit etre ouverte avant d'enregistrer la moindre vente : sans ca,
+        // il n'y a aucun fond de reference pour calculer le theorique de fin de journee.
+        sessionCaisseRepository.findByUtilisateur_IdUtilisateurAndStatut(idVendeurConnecte, StatutSessionCaisse.OUVERTE)
+                .orElseThrow(() -> new OperationInvalideException("Vous devez ouvrir votre caisse avant d'enregistrer une vente."));
+
         Boutique boutique = boutiqueRepository.findById(request.getIdBoutique())
                 .orElseThrow(() -> new RessourceNonTrouveeException("Boutique introuvable, id=" + request.getIdBoutique()));
 
@@ -185,6 +194,11 @@ public class VenteServiceImpl implements VenteService {
                     .sousTotal(sousTotal)
                     .build();
             lignes.add(ligne);
+
+            // Decompte du lot d'approvisionnement le plus ancien encore actif (FIFO) : permet
+            // de savoir en permanence a quel prix d'achat correspond le stock en train d'etre
+            // vendu, meme quand plusieurs approvisionnements a des prix differents se succedent.
+            coutMarchandiseService.deprecierFifo(produit.getIdProduit(), boutique.getIdBoutique(), ligneReq.getQuantite());
         }
 
         vente.setMontantTotal(montantTotal);

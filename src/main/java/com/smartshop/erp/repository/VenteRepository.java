@@ -44,4 +44,34 @@ public interface VenteRepository extends JpaRepository<Vente, Long> {
                        @Param("fin") LocalDateTime fin,
                        @Param("statut") StatutVente statut,
                        @Param("idBoutique") Long idBoutique);
+
+    // --- Requetes scopees par vendeur, utilisees par la caisse (chaque vendeur a sa propre session) ---
+
+    @Query("SELECT COALESCE(SUM(v.montantFinal), 0) FROM Vente v WHERE v.statut = com.smartshop.erp.enums.StatutVente.VALIDEE " +
+           "AND v.modeReglement = com.smartshop.erp.enums.ModeReglement.COMPTANT " +
+           "AND v.vendeur.idUtilisateur = :idVendeur AND v.dateVente BETWEEN :debut AND :fin")
+    BigDecimal sommeVentesComptantParVendeurEtPeriode(@Param("idVendeur") Long idVendeur,
+                                                        @Param("debut") LocalDateTime debut,
+                                                        @Param("fin") LocalDateTime fin);
+
+    @Query("SELECT COALESCE(SUM(v.montantFinal), 0) FROM Vente v WHERE v.statut = com.smartshop.erp.enums.StatutVente.VALIDEE " +
+           "AND v.modeReglement = com.smartshop.erp.enums.ModeReglement.CREDIT " +
+           "AND v.vendeur.idUtilisateur = :idVendeur AND v.dateVente BETWEEN :debut AND :fin")
+    BigDecimal sommeVentesCreditParVendeurEtPeriode(@Param("idVendeur") Long idVendeur,
+                                                      @Param("debut") LocalDateTime debut,
+                                                      @Param("fin") LocalDateTime fin);
+
+    @Query("SELECT COUNT(v) FROM Vente v WHERE v.statut = com.smartshop.erp.enums.StatutVente.VALIDEE " +
+           "AND v.vendeur.idUtilisateur = :idVendeur AND v.dateVente BETWEEN :debut AND :fin")
+    long nombreVentesParVendeurEtPeriode(@Param("idVendeur") Long idVendeur,
+                                          @Param("debut") LocalDateTime debut,
+                                          @Param("fin") LocalDateTime fin);
+
+    /** Liste detaillee des ventes validees de ce vendeur, pour le journal de caisse. */
+    @Query("SELECT v FROM Vente v WHERE v.statut = com.smartshop.erp.enums.StatutVente.VALIDEE " +
+           "AND v.vendeur.idUtilisateur = :idVendeur AND v.dateVente BETWEEN :debut AND :fin " +
+           "ORDER BY v.dateVente DESC")
+    List<Vente> listeParVendeurEtPeriode(@Param("idVendeur") Long idVendeur,
+                                          @Param("debut") LocalDateTime debut,
+                                          @Param("fin") LocalDateTime fin);
 }

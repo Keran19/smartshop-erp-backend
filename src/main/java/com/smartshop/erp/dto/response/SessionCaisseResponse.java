@@ -17,6 +17,7 @@ public class SessionCaisseResponse {
     private Long idSession;
     private Long idBoutique;
     private String boutique;
+    private Long idUtilisateur;
     private String utilisateur;
     private LocalDateTime dateOuverture;
     private LocalDateTime dateFermeture;
@@ -28,4 +29,7 @@ public class SessionCaisseResponse {
     private String observation;
     private DetailCoupureResponse coupureOuverture;
     private DetailCoupureResponse coupureFermeture;
+
+    /** Informatif : total des ventes a credit realisees pendant la session (non comptees dans le theorique). */
+    private BigDecimal creditNonEncaisse;
 }

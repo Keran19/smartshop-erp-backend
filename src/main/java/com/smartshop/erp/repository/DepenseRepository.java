@@ -22,4 +22,18 @@ public interface DepenseRepository extends JpaRepository<Depense, Long> {
     BigDecimal sommeParBoutiqueEtPeriode(@Param("idBoutique") Long idBoutique,
                                           @Param("debut") LocalDateTime debut,
                                           @Param("fin") LocalDateTime fin);
+
+    /** Depenses enregistrees par ce vendeur sur la periode (impacte sa propre caisse). */
+    @Query("SELECT COALESCE(SUM(d.montant),0) FROM Depense d WHERE d.dateDepense BETWEEN :debut AND :fin " +
+           "AND d.utilisateur.idUtilisateur = :idVendeur")
+    BigDecimal sommeParVendeurEtPeriode(@Param("idVendeur") Long idVendeur,
+                                         @Param("debut") LocalDateTime debut,
+                                         @Param("fin") LocalDateTime fin);
+
+    /** Liste detaillee des depenses de ce vendeur, pour le journal de caisse. */
+    @Query("SELECT d FROM Depense d WHERE d.utilisateur.idUtilisateur = :idVendeur " +
+           "AND d.dateDepense BETWEEN :debut AND :fin ORDER BY d.dateDepense DESC")
+    List<Depense> listeParVendeurEtPeriode(@Param("idVendeur") Long idVendeur,
+                                            @Param("debut") LocalDateTime debut,
+                                            @Param("fin") LocalDateTime fin);
 }

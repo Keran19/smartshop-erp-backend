@@ -1,6 +1,7 @@
 package com.smartshop.erp.entity;
 
 import com.smartshop.erp.enums.StatutSessionCaisse;
+import com.smartshop.erp.enums.StatutValidationEcart;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -42,7 +43,7 @@ public class SessionCaisse {
     @Builder.Default
     private BigDecimal fondCaisse = BigDecimal.ZERO;
 
-    // Montant theorique en fin de journee = fond_caisse + ventes especes - depenses
+    // Montant theorique en fin de journee = fond_caisse + ventes especes - depenses (+ credits/acomptes/retours)
     @Column(name = "montant_theorique", precision = 12, scale = 2)
     @Builder.Default
     private BigDecimal montantTheorique = BigDecimal.ZERO;
@@ -67,9 +68,31 @@ public class SessionCaisse {
     @Builder.Default
     private List<DetailCoupureSession> coupures = new ArrayList<>();
 
+    // --- Validation de l'ecart par un admin/gerant (page "Gestion de caisse") ---
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "statut_validation_ecart", nullable = false)
+    @Builder.Default
+    private StatutValidationEcart statutValidationEcart = StatutValidationEcart.NON_TRAITE;
+
+    @Column(name = "commentaire_validation", columnDefinition = "TEXT")
+    private String commentaireValidation;
+
+    /** Montant effectivement impute sur le salaire du vendeur (peut differer de l'ecart brut). */
+    @Column(name = "montant_impute_salaire", precision = 12, scale = 2)
+    private BigDecimal montantImputeSalaire;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "id_validateur")
+    private Utilisateur validateur;
+
+    @Column(name = "date_validation")
+    private LocalDateTime dateValidation;
+
     @PrePersist
     public void prePersist() {
         if (dateOuverture == null) dateOuverture = LocalDateTime.now();
         if (statut == null) statut = StatutSessionCaisse.OUVERTE;
+        if (statutValidationEcart == null) statutValidationEcart = StatutValidationEcart.NON_TRAITE;
     }
 }

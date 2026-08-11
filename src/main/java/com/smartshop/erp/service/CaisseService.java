@@ -2,22 +2,39 @@ package com.smartshop.erp.service;
 
 import com.smartshop.erp.dto.request.FermetureCaisseRequest;
 import com.smartshop.erp.dto.request.OuvertureCaisseRequest;
+import com.smartshop.erp.dto.request.ValidationEcartRequest;
+import com.smartshop.erp.dto.response.MouvementCaisseLigne;
+import com.smartshop.erp.dto.response.MouvementsCaisseResponse;
+import com.smartshop.erp.dto.response.SessionCaisseAdminResponse;
 import com.smartshop.erp.dto.response.SessionCaisseResponse;
 
+import java.time.LocalDate;
 import java.util.List;
 
 public interface CaisseService {
 
-    /** Ouvre une session de caisse pour une boutique, en declarant le fond de caisse par coupures. */
     SessionCaisseResponse ouvrir(OuvertureCaisseRequest request, Long idUtilisateurConnecte);
 
-    /** Ferme la session, en declarant le montant compte par coupures ; calcule l'ecart automatiquement. */
     SessionCaisseResponse fermer(Long idSession, FermetureCaisseRequest request);
 
     SessionCaisseResponse obtenir(Long idSession);
 
-    /** La session actuellement ouverte pour une boutique, s'il y en a une. */
-    SessionCaisseResponse sessionOuverte(Long idBoutique);
+    /** La session actuellement ouverte pour CE vendeur (chaque vendeur a sa propre caisse). */
+    SessionCaisseResponse sessionOuverteParVendeur(Long idUtilisateur);
 
-    List<SessionCaisseResponse> historique(Long idBoutique);
+    List<SessionCaisseResponse> historiqueParBoutique(Long idBoutique);
+
+    List<SessionCaisseResponse> historiqueParVendeur(Long idUtilisateur);
+
+    /** Photo en temps reel des mouvements (ventes, credits, retours, acomptes, depenses) de la session. */
+    MouvementsCaisseResponse mouvements(Long idSession);
+
+    /** Journal detaille : une ligne par operation individuelle (retour, remboursement, acompte, depense, vente). */
+    List<MouvementCaisseLigne> journal(Long idSession);
+
+    /** Toutes les sessions (toutes boutiques, tous vendeurs) ouvertes le jour donne, pour le tableau de bord admin. */
+    List<SessionCaisseAdminResponse> sessionsAdmin(LocalDate jour);
+
+    /** Valide ou impute sur salaire l'ecart d'une session fermee. */
+    SessionCaisseAdminResponse validerEcart(Long idSession, ValidationEcartRequest request, Long idAdminConnecte);
 }
